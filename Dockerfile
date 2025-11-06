@@ -1,13 +1,15 @@
-FROM eclipse-temurin:17-jdk-jammy
-
-# Tạo thư mục làm việc trong container
+# ---- Build stage ----
+FROM maven:3.9.4-eclipse-temurin-17 AS build
 WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Sao chép file JAR vào container
-COPY target/*.jar app.jar
+# ---- Run stage ----
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 
-# Mở cổng 8080 (hoặc cổng bạn dùng)
-EXPOSE 8090
-
-# Lệnh chạy ứng dụng
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Render cung cấp biến PORT, ta cần expose nó
+EXPOSE 8080
+CMD ["sh", "-c", "java -jar app.jar --server.port=${PORT:-8080}"]
